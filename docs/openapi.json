@@ -1,0 +1,301 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "URL shortener",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/links": {
+      "get": {
+        "summary": "GET /api/v1/links",
+        "responses": {
+          "200": {
+            "description": "Success; see API contract for exact statuses"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "POST /api/v1/links",
+        "responses": {
+          "200": {
+            "description": "Success; see API contract for exact statuses"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          },
+          "201": {
+            "description": "Created or idempotent replay"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/links/{id}": {
+      "get": {
+        "summary": "GET /api/v1/links/{id}",
+        "responses": {
+          "200": {
+            "description": "Success; see API contract for exact statuses"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "PATCH /api/v1/links/{id}",
+        "responses": {
+          "200": {
+            "description": "Success; see API contract for exact statuses"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Patch"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "DELETE /api/v1/links/{id}",
+        "responses": {
+          "200": {
+            "description": "Success; see API contract for exact statuses"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/links/{id}/analytics": {
+      "get": {
+        "summary": "GET /api/v1/links/{id}/analytics",
+        "responses": {
+          "200": {
+            "description": "Success; see API contract for exact statuses"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/{code}": {
+      "get": {
+        "summary": "GET /{code}",
+        "responses": {
+          "200": {
+            "description": "Success; see API contract for exact statuses"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Create": {
+        "type": "object",
+        "required": [
+          "originalUrl"
+        ],
+        "properties": {
+          "originalUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 4096
+          },
+          "customAlias": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "domain": {
+            "type": "string"
+          }
+        }
+      },
+      "Patch": {
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "originalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "DISABLED",
+              "BLOCKED",
+              "DELETED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shortener
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: shortener }
+  strategy:
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels: { app: shortener }
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext: { runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001 }
+      containers:
+        - name: app
+          image: shortener:1.0.0
+          ports: [ { containerPort: 8080 } ]
+          envFrom:
+            - configMapRef: { name: shortener }
+            - secretRef: { name: shortener-secrets }
+          resources:
+            requests: { cpu: '1', memory: 512Mi }
+            limits: { cpu: '2', memory: 1Gi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ ALL ] } }
+          volumeMounts: [ { name: tmp, mountPath: /tmp } ]
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            failureThreshold: 60
+            periodSeconds: 2
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+      volumes: [ { name: tmp, emptyDir: { } } ]
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels: { app: shortener }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: shortener }
+spec:
+  selector: { app: shortener }
+  ports: [ { port: 80, targetPort: 8080 } ]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: shortener }
+data:
+  DATABASE_URL: jdbc:postgresql://postgres.example.internal:5432/shortener?sslmode=verify-full
+  REDIS_HOST: redis.example.internal
+  JWT_ISSUER: https://identity.example.com
+  JWT_AUDIENCE: shortener
+  SHORT_DOMAIN: sho.rt
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: shortener }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: shortener }
+  minReplicas: 3
+  maxReplicas: 50
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 60 }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: shortener }
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels: { app: shortener }

@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: url-shortener
+  threads.virtual.enabled: true
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/shortener}
+    username: ${DATABASE_USER:shortener}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 32
+      connection-timeout: 1000
+      data-source-properties:
+        socketTimeout: 2
+        options: -c statement_timeout=1500 -c lock_timeout=1000
+  data.redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 100ms
+    connect-timeout: 200ms
+  security.oauth2.resourceserver.jwt:
+    issuer-uri: ${JWT_ISSUER}
+    jwk-set-uri: ${JWT_JWK_SET_URI:${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs}
+    audiences: ${JWT_AUDIENCE:shortener}
+  lifecycle.timeout-per-shutdown-phase: 20s
+server:
+  shutdown: graceful
+  forward-headers-strategy: none
+  max-http-request-header-size: 16KB
+  tomcat:
+    max-connections: 8192
+    accept-count: 100
+management:
+  endpoints.web.exposure.include: health,prometheus
+  endpoint.health.probes.enabled: true
+  tracing.sampling.probability: 0.01
+  metrics.distribution.percentiles-histogram:
+    redirect_latency_seconds: true
+    http.server.requests: true
+logging.structured.format.console: logstash
+shortener:
+  domain: ${SHORT_DOMAIN:localhost}
+  public-base-url: ${SHORT_BASE_URL:}
+  strict: ${STRICT_REDIRECTS:false}
+  redirect-status: ${REDIRECT_STATUS:302}

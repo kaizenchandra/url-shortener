@@ -1,0 +1,38 @@
+{
+  "title": "URL shortener",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Redirect rate",
+      "targets": [
+        {
+          "expr": "sum(rate(redirect_requests_total[5m]))"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Redirect p99",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99,sum by(le)(rate(redirect_latency_seconds_seconds_bucket[5m])))"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      }
+    }
+  ]
+}

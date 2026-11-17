@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: shortener
+      POSTGRES_USER: shortener
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
+    ports: [ "127.0.0.1:${POSTGRES_PORT:-5433}:5432" ]
+    volumes: [ "postgres:/var/lib/postgresql/data" ]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U shortener" ]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7.4-alpine
+    command: [ "redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru" ]
+    ports: [ "127.0.0.1:${REDIS_PORT:-6380}:6379" ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    command: [ "start-dev", "--import-realm" ]
+    environment:
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-9001}
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD}
+    ports: [ "127.0.0.1:${KEYCLOAK_PORT:-9001}:8080" ]
+    volumes:
+      - ./docker/keycloak/shortener-realm.json:/opt/keycloak/data/import/shortener-realm.json:ro
+    healthcheck:
+      test: [ "CMD", "bash", "-ec", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3; grep -q '200 OK' <&3" ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports: [ "127.0.0.1:${APP_PORT:-8081}:8080" ]
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/shortener
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      REDIS_HOST: redis
+      JWT_ISSUER: http://localhost:${KEYCLOAK_PORT:-9001}/realms/shortener
+      JWT_JWK_SET_URI: http://keycloak:8080/realms/shortener/protocol/openid-connect/certs
+      JWT_AUDIENCE: shortener
+      SHORT_DOMAIN: localhost
+      SHORT_BASE_URL: http://localhost:${APP_PORT:-8081}
+      MANAGEMENT_OTLP_TRACING_EXPORT_ENABLED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+volumes:
+  postgres:
